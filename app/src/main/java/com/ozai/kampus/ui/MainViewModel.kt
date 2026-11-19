@@ -79,7 +79,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun startTrip() {
         message = null
-        setTrip(TripState(System.currentTimeMillis(), emptyList()))
+        updateTrip(TripState(System.currentTimeMillis(), emptyList()))
     }
 
     fun markStep() {
@@ -93,7 +93,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun advance(t: TripState) {
-        setTrip(t)
+        updateTrip(t)
         if (t.isComplete) finishTrip()
     }
 
@@ -110,19 +110,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 "${seg.title} ${formatMin(v)} dk"
             }
         }
-        setTrip(null)
+        updateTrip(null)
     }
 
     fun cancelTrip() {
         message = null
-        setTrip(null)
+        updateTrip(null)
     }
 
     fun dismissMessage() {
         message = null
     }
 
-    private fun setTrip(t: TripState?) {
+    private fun updateTrip(t: TripState?) {
         trip = t
         store.saveTrip(t)
     }
