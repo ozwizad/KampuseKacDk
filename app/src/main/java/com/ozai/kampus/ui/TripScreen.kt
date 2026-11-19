@@ -1,5 +1,12 @@
 package com.ozai.kampus.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,11 +20,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -27,6 +33,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,100 +45,164 @@ import com.ozai.kampus.data.TripSteps
 fun TripScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
     val trip = vm.trip
     var confirmCancel by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Text(
-                "Yolculuğu kaydet",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        val msg = vm.message
-        if (msg != null) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                ) {
-                    Column(Modifier.padding(14.dp)) {
-                        Text(msg)
-                        TextButton(onClick = { vm.dismissMessage() }) { Text("Tamam") }
-                    }
-                }
+    Column(modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item(key = "title") {
+                Text(
+                    "Yolculuğu kaydet",
+                    modifier = Modifier.softItem(),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
-        }
 
-        if (trip == null) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(
-                            "Evden çıkarken kaydı başlat, yol boyunca kontrol noktalarına bas. " +
-                                "Ölçümler tahminleri kişiselleştirir. Uygulamayı kapatabilirsin; " +
-                                "süre gerçek saatle devam eder.",
-                            style = MaterialTheme.typography.bodyMedium
+            val msg = vm.message
+            if (msg != null) {
+                item(key = "message") {
+                    Card(
+                        modifier = Modifier
+                            .softItem()
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-                        Spacer(Modifier.height(14.dp))
-                        Button(
-                            onClick = { vm.startTrip() },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Evden çıktım, başlat")
+                    ) {
+                        Column(Modifier.padding(14.dp)) {
+                            Text(msg)
+                            TextButton(onClick = { vm.dismissMessage() }) { Text("Tamam") }
                         }
                     }
                 }
             }
-        } else {
-            item { ElapsedCard(trip, vm.nowMs) }
 
-            val steps = TripSteps.labels
-            val current = trip.marks.size
-            for (i in steps.indices) {
-                item(key = "step_$i") {
-                    StepRow(
-                        index = i,
-                        label = steps[i],
-                        trip = trip,
-                        isCurrent = i == current,
-                        onMark = { vm.markStep() },
-                        onSkip = { vm.skipStep() }
-                    )
+            if (trip == null) {
+                item(key = "intro") {
+                    Card(
+                        modifier = Modifier
+                            .softItem()
+                            .fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Text(
+                            "Evden çıkarken kaydı başlat, yol boyunca her noktaya gelince " +
+                                "\"Şimdi\"ye bas. Ölçümler tahminleri kişiselleştirir. " +
+                                "Uygulamayı kapatabilirsin; süre gerçek saatle devam eder.",
+                            modifier = Modifier.padding(16.dp),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            } else {
+                item(key = "elapsed") { ElapsedCard(trip, vm.nowMs, Modifier.softItem()) }
+
+                val steps = TripSteps.labels
+                val current = trip.marks.size
+                for (i in steps.indices) {
+                    item(key = "step_$i") {
+                        StepRow(
+                            index = i,
+                            label = steps[i],
+                            trip = trip,
+                            isCurrent = i == current,
+                            modifier = Modifier.softItem()
+                        )
+                    }
+                }
+
+                item(key = "finish") {
+                    Row(
+                        Modifier
+                            .softItem()
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        AppButton(
+                            onClick = { vm.finishTrip() },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Bitir ve kaydet")
+                        }
+                        AppOutlinedButton(
+                            onClick = { confirmCancel = true },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("İptal et")
+                        }
+                    }
                 }
             }
+        }
 
-            item {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+        // The main action never moves: same spot, same size, whatever step you are on.
+        if (trip == null) {
+            ActionBar {
+                AppButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        vm.startTrip()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp)
                 ) {
-                    Button(
-                        onClick = { vm.finishTrip() },
-                        modifier = Modifier.weight(1f)
+                    Text("Evden çıktım, başlat", fontSize = 18.sp)
+                }
+            }
+        } else {
+            val label = TripSteps.labels.getOrNull(trip.marks.size).orEmpty()
+            ActionBar {
+                Text(
+                    "Sıradaki adım",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                AnimatedContent(
+                    targetState = label,
+                    transitionSpec = {
+                        fadeIn(tween(200, easing = UiEaseOut)) togetherWith
+                            fadeOut(tween(120, easing = UiEaseOut))
+                    },
+                    label = "stepLabel"
+                ) { text ->
+                    Text(
+                        text,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AppButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            vm.markStep()
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(60.dp)
                     ) {
-                        Text("Bitir ve kaydet")
+                        Text("Şimdi", fontSize = 18.sp)
                     }
-                    OutlinedButton(
-                        onClick = { confirmCancel = true },
-                        modifier = Modifier.weight(1f)
+                    AppOutlinedButton(
+                        onClick = { vm.skipStep() },
+                        modifier = Modifier.height(60.dp)
                     ) {
-                        Text("İptal et")
+                        Text("Atla")
                     }
                 }
             }
@@ -156,9 +228,26 @@ fun TripScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ElapsedCard(trip: TripState, nowMs: Long) {
-    Card(
+private fun ActionBar(content: @Composable () -> Unit) {
+    Surface(
         modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 3.dp,
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun ElapsedCard(trip: TripState, nowMs: Long, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary,
@@ -174,12 +263,13 @@ private fun ElapsedCard(trip: TripState, nowMs: Long) {
             Text("Geçen süre", style = MaterialTheme.typography.titleMedium)
             Text(
                 formatElapsed(nowMs - trip.startMs),
+                style = TabularNums,
                 fontSize = 56.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 "Başlangıç: ${epochToHhmmss(trip.startMs)}",
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium.merge(TabularNums)
             )
         }
     }
@@ -191,16 +281,19 @@ private fun StepRow(
     label: String,
     trip: TripState,
     isCurrent: Boolean,
-    onMark: () -> Unit,
-    onSkip: () -> Unit
+    modifier: Modifier = Modifier
 ) {
     val done = index < trip.marks.size
-    val container = when {
-        isCurrent -> MaterialTheme.colorScheme.primaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
+    val container by animateColorAsState(
+        targetValue = if (isCurrent) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surfaceVariant,
+        animationSpec = tween(150, easing = UiEaseOut),
+        label = "stepColor"
+    )
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .animateContentSize(animationSpec = tween(200, easing = UiEaseOut)),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = container)
     ) {
@@ -234,20 +327,9 @@ private fun StepRow(
                     }
                     Text(
                         "${epochToHhmmss(mark)} (+${formatDelta((mark - prev) / 1000L)})",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodySmall.merge(TabularNums),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-            }
-            if (isCurrent) {
-                Spacer(Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(onClick = onMark, modifier = Modifier.weight(1f)) {
-                        Text("Şimdi")
-                    }
-                    OutlinedButton(onClick = onSkip) {
-                        Text("Atla")
-                    }
                 }
             }
         }

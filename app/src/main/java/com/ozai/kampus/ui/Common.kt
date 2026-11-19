@@ -1,6 +1,20 @@
 package com.ozai.kampus.ui
 
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -83,3 +97,68 @@ fun SourceChip(source: Source, modifier: Modifier = Modifier) {
         )
     }
 }
+
+
+// ---- Motion & shared controls ----
+
+/** Strong ease-out: starts fast, feels immediate. Used for every UI transition. */
+val UiEaseOut = CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
+
+/** Tabular digits so changing numbers (timers, clock times) keep a fixed width. */
+val TabularNums = TextStyle(fontFeatureSettings = "tnum")
+
+/** Subtle press feedback: scale down while pressed (fast), release a bit slower. */
+@Composable
+fun Modifier.pressScale(source: InteractionSource, pressedScale: Float = 0.97f): Modifier {
+    val pressed by source.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) pressedScale else 1f,
+        animationSpec = tween(if (pressed) 100 else 160, easing = UiEaseOut),
+        label = "pressScale"
+    )
+    return this.graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+    }
+}
+
+@Composable
+fun AppButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit
+) {
+    val source = remember { MutableInteractionSource() }
+    Button(
+        onClick = onClick,
+        modifier = modifier.pressScale(source),
+        enabled = enabled,
+        interactionSource = source,
+        content = content
+    )
+}
+
+@Composable
+fun AppOutlinedButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit
+) {
+    val source = remember { MutableInteractionSource() }
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.pressScale(source),
+        enabled = enabled,
+        interactionSource = source,
+        content = content
+    )
+}
+
+/** List item modifier: enter fades in, exit is faster than enter, neighbours slide into place. */
+fun LazyItemScope.softItem(): Modifier = Modifier.animateItem(
+    fadeInSpec = tween(200, easing = UiEaseOut),
+    placementSpec = tween(200, easing = UiEaseOut),
+    fadeOutSpec = tween(150, easing = UiEaseOut)
+)

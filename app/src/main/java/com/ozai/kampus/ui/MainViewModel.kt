@@ -29,6 +29,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var liveFailed by mutableStateOf(false)
         private set
+    /** True only while a refresh the user asked for runs; background polls stay silent. */
+    var manualRefreshing by mutableStateOf(false)
+        private set
     var lastRefresh by mutableStateOf<LocalDateTime?>(null)
         private set
     var trip by mutableStateOf<TripState?>(store.loadTrip())
@@ -45,9 +48,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         nowMs = System.currentTimeMillis()
     }
 
-    fun refresh() {
+    fun refresh(manual: Boolean = false) {
         if (loading) return
         loading = true
+        manualRefreshing = manual
         viewModelScope.launch {
             try {
                 val l = try {
@@ -66,6 +70,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 lastRefresh = LocalDateTime.now()
             } finally {
                 loading = false
+                manualRefreshing = false
             }
         }
     }
@@ -74,7 +79,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun startTrip() {
         message = null
-        updateTrip(TripState(System.currentTimeMillis(), emptyList()))
+        setTrip(TripState(System.currentTimeMillis(), emptyList()))
     }
 
     fun markStep() {
@@ -88,7 +93,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun advance(t: TripState) {
-        updateTrip(t)
+        setTrip(t)
         if (t.isComplete) finishTrip()
     }
 
@@ -105,19 +110,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 "${seg.title} ${formatMin(v)} dk"
             }
         }
-        updateTrip(null)
+        setTrip(null)
     }
 
     fun cancelTrip() {
         message = null
-        updateTrip(null)
+        setTrip(null)
     }
 
     fun dismissMessage() {
         message = null
     }
 
-    private fun updateTrip(t: TripState?) {
+    private fun setTrip(t: TripState?) {
         trip = t
         store.saveTrip(t)
     }

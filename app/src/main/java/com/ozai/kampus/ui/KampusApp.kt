@@ -45,7 +45,7 @@ fun KampusApp(vm: MainViewModel) {
         ) { padding ->
             val mod = Modifier.padding(padding)
             when (tabs[tabIndex]) {
-                Tab.HOME -> HomeScreen(vm, mod)
+                Tab.HOME -> HomeScreen(vm, mod, onOpenTrip = { tabIndex = 1 })
                 Tab.TRIP -> TripScreen(vm, mod)
                 Tab.STATS -> StatsScreen(vm, mod)
             }

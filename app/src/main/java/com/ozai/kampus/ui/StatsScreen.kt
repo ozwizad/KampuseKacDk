@@ -24,7 +24,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -103,7 +102,7 @@ fun StatsScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
                         }
                     }
                     Spacer(Modifier.height(6.dp))
-                    OutlinedButton(onClick = { addFor = seg }) {
+                    AppOutlinedButton(onClick = { addFor = seg }) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.size(6.dp))
                         Text("Ölçüm ekle")
@@ -113,7 +112,7 @@ fun StatsScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
         }
 
         item {
-            OutlinedButton(
+            AppOutlinedButton(
                 onClick = { confirmReset = true },
                 modifier = Modifier.fillMaxWidth()
             ) {
