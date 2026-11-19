@@ -88,7 +88,7 @@ fun HomeScreen(
         item(key = "title") {
             Text(
                 "Kampüse Kaç Dk",
-                modifier = Modifier.softItem(),
+                modifier = softItem(),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -97,7 +97,7 @@ fun HomeScreen(
 
         if (trip != null) {
             item(key = "trip") {
-                TripPill(vm.nowMs - trip.startMs, onOpenTrip, Modifier.softItem())
+                TripPill(vm.nowMs - trip.startMs, onOpenTrip, softItem())
             }
         }
 
@@ -107,10 +107,10 @@ fun HomeScreen(
                     "Plan hesaplanamadı. Yenilemeyi dene.",
                     MaterialTheme.colorScheme.errorContainer,
                     MaterialTheme.colorScheme.onErrorContainer,
-                    Modifier.softItem()
+                    softItem()
                 )
             }
-            item(key = "refresh") { RefreshRow(vm, Modifier.softItem()) }
+            item(key = "refresh") { RefreshRow(vm, softItem()) }
         } else {
             val plan = data.plan
             val notes = buildList {
@@ -119,35 +119,35 @@ fun HomeScreen(
             }
 
             // The answer comes first; everything else supports it.
-            item(key = "hero") { ArrivalCard(plan, notes, Modifier.softItem()) }
+            item(key = "hero") { ArrivalCard(plan, notes, softItem()) }
 
             if (walkCount < 3) {
-                item(key = "calibration") { CalibrationBanner(walkCount, Modifier.softItem()) }
+                item(key = "calibration") { CalibrationBanner(walkCount, softItem()) }
             }
 
             item(key = "legs-title") {
                 Text(
                     "Yolculuk adımları",
-                    modifier = Modifier.softItem(),
+                    modifier = softItem(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            item(key = "legs") { Timeline(plan.legs, Modifier.softItem()) }
+            item(key = "legs") { Timeline(plan.legs, softItem()) }
 
-            item(key = "refresh") { RefreshRow(vm, Modifier.softItem()) }
+            item(key = "refresh") { RefreshRow(vm, softItem()) }
 
             if (data.options.isNotEmpty()) {
                 item(key = "options-title") {
                     Text(
                         "Sonraki seçenekler",
-                        modifier = Modifier.softItem(),
+                        modifier = softItem(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
                 itemsIndexed(data.options, key = { i, _ -> "option_$i" }) { _, opt ->
-                    OptionRow(opt, Modifier.softItem())
+                    OptionRow(opt, softItem())
                 }
             }
         }

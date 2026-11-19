@@ -58,7 +58,7 @@ fun TripScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
             item(key = "title") {
                 Text(
                     "Yolculuğu kaydet",
-                    modifier = Modifier.softItem(),
+                    modifier = softItem(),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -69,8 +69,7 @@ fun TripScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
             if (msg != null) {
                 item(key = "message") {
                     Card(
-                        modifier = Modifier
-                            .softItem()
+                        modifier = softItem()
                             .fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
@@ -89,8 +88,7 @@ fun TripScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
             if (trip == null) {
                 item(key = "intro") {
                     Card(
-                        modifier = Modifier
-                            .softItem()
+                        modifier = softItem()
                             .fillMaxWidth(),
                         shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
@@ -107,7 +105,7 @@ fun TripScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
                     }
                 }
             } else {
-                item(key = "elapsed") { ElapsedCard(trip, vm.nowMs, Modifier.softItem()) }
+                item(key = "elapsed") { ElapsedCard(trip, vm.nowMs, softItem()) }
 
                 val steps = TripSteps.labels
                 val current = trip.marks.size
@@ -118,15 +116,14 @@ fun TripScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
                             label = steps[i],
                             trip = trip,
                             isCurrent = i == current,
-                            modifier = Modifier.softItem()
+                            modifier = softItem()
                         )
                     }
                 }
 
                 item(key = "finish") {
                     Row(
-                        Modifier
-                            .softItem()
+                        softItem()
                             .fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
