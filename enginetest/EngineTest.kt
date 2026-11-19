@@ -123,6 +123,20 @@ fun main() {
         Planner.plan(now, s2, null).legs[0].source == Source.ESTIMATE &&
         Planner.plan(now, s3, null).legs[0].source == Source.LEARNED)
 
+    // regression: API sentinel (saniye=1000000) must never become the plan
+    run {
+        val t = java.time.LocalDateTime.of(2026, 11, 19, 14, 31, 0)
+        val bogus = LiveInfo(t, java.time.LocalTime.of(14, 42), listOf(176, 262, 1_000_000))
+        val p = Planner.plan(t, none, bogus)
+        check("sentinel 1000000 s ignored (total sane)", p.totalMin in 40..90, "total=${p.totalMin}")
+        check("sentinel falls back to timetable", p.legs.last().source == Source.TIMETABLE)
+        val onlyBogus = LiveInfo(t, null, listOf(1_000_000))
+        check("only-sentinel live ignored", Planner.plan(t, none, onlyBogus).totalMin in 40..90)
+        // a real live bus soon after reaching the stop is still used
+        val nearStop = LiveInfo(t, null, listOf(47 * 60 + 100))
+        check("plausible live bus still used", Planner.plan(t, none, nearStop).legs.last().source == Source.LIVE)
+    }
+
     println(if (fails == 0) "ALL TESTS PASSED" else "$fails FAILURES")
     if (fails > 0) System.exit(1)
 }

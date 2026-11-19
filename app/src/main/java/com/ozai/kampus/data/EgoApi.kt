@@ -19,6 +19,7 @@ object EgoApi {
         "https://egocptsrvand.ego.gov.tr/mblSrv14/service.asp?FNC=Otobusler&VER=3.1.0&LAN=tr&DURAK="
     private const val USER_AGENT = "EGO Cepte/8 CFNetwork/1568.300.101 Darwin/24.0.0"
     private const val TIMEOUT_MS = 10_000
+    private const val MAX_LIVE_SECS = 7200
     private val TIME_RE = Regex("(\\d{1,2}):(\\d{2})")
 
     /** Returns null only when both requests failed. */
@@ -88,7 +89,8 @@ object EgoApi {
             val arac = row.optString("arac_no").trim()
             if (arac.isEmpty() || arac == "-") continue
             val secs = row.optString("saniye").trim().toIntOrNull() ?: continue
-            if (secs >= 0) out.add(secs)
+            // API belirsiz/yolda olmayan araçlar için çok büyük (ör. 1.000.000) değer döndürebiliyor.
+            if (secs in 0..MAX_LIVE_SECS) out.add(secs)
         }
         out.sort()
         return out

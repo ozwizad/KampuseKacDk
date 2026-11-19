@@ -14,6 +14,7 @@ object Planner {
     private const val BUS_UNCERTAIN_SHIFT = 10L
     private const val LIVE_ANKARAY_MAX_AGE_MIN = 10L
     private const val LIVE_BUS_MAX_AGE_MIN = 3L
+    private const val LIVE_BUS_MAX_WAIT_MIN = 30L  // durağa varıştan sonra en fazla bu kadar bekleme canlı sayılır
     private val HHMM = DateTimeFormatter.ofPattern("HH:mm")
 
     fun plan(departHome: LocalDateTime, stats: Stats, live: LiveInfo?): Plan =
@@ -156,7 +157,8 @@ object Planner {
         if (live == null || age(live.fetchedAt, now) > LIVE_BUS_MAX_AGE_MIN) return null
         return live.bus130ArrivalSecs.sorted()
             .map { live.fetchedAt.plusSeconds(it.toLong()) to it }
-            .firstOrNull { it.first >= atStop }
+            .firstOrNull { it.first >= atStop && it.second in 0..7200 &&
+                minutesBetween(atStop, it.first) <= LIVE_BUS_MAX_WAIT_MIN }
     }
 
     /** Next 130 passing time at the bridge stop from the timetable. */
