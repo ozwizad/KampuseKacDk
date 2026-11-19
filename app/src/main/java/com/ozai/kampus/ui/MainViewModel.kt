@@ -10,13 +10,16 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ozai.kampus.data.EgoApi
 import com.ozai.kampus.data.StatsStore
+import com.ozai.kampus.data.TripRecord
 import com.ozai.kampus.data.TripState
 import com.ozai.kampus.engine.LiveInfo
+import com.ozai.kampus.engine.Planner
 import com.ozai.kampus.engine.Segment
 import com.ozai.kampus.engine.Stats
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val store = StatsStore(app)
@@ -35,6 +38,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     var lastRefresh by mutableStateOf<LocalDateTime?>(null)
         private set
     var trip by mutableStateOf<TripState?>(store.loadTrip())
+        private set
+    var history by mutableStateOf(store.loadHistory())
         private set
     var message by mutableStateOf<String?>(null)
         private set
@@ -79,7 +84,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun startTrip() {
         message = null
-        updateTrip(TripState(System.currentTimeMillis(), emptyList()))
+        // Remember what the app predicted at the moment you left, to compare with reality later.
+        val predicted: Long? = try {
+            Planner.plan(LocalDateTime.now(), stats, live)
+                .arriveCampus.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        } catch (e: Exception) {
+            null
+        }
+        updateTrip(TripState(System.currentTimeMillis(), emptyList(), predicted))
     }
 
     fun markStep() {
@@ -103,14 +115,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (samples.isNotEmpty()) {
             updateStats { m -> samples.forEach { (seg, v) -> m[seg]!!.add(v) } }
         }
-        message = if (samples.isEmpty()) {
-            "Kaydedilecek ölçüm yok."
-        } else {
-            "Yolculuk kaydedildi: " + samples.joinToString(", ") { (seg, v) ->
-                "${seg.title} ${formatMin(v)} dk"
-            }
+        val rec = t.toRecord()
+        if (t.marks.any { it != null }) {
+            val next = (listOf(rec) + history).take(30)
+            history = next
+            store.saveHistory(next)
         }
+        val actual = rec.actualArriveMs
+        val pred = rec.predictedArriveMs
+        val cmp = if (actual != null && pred != null) {
+            "Tahmin ${epochToHhmm(pred)}, gerçek ${epochToHhmm(actual)} (${formatDiff((actual - pred) / 60000.0)})."
+        } else {
+            null
+        }
+        val head = if (samples.isEmpty()) "Kaydedilecek ölçüm yok." else "Yolculuk kaydedildi (${samples.size} ölçüm)."
+        message = listOfNotNull(head, cmp).joinToString(" ")
         updateTrip(null)
+    }
+
+    fun deleteTrip(index: Int) {
+        if (index !in history.indices) return
+        val next = history.toMutableList().also { it.removeAt(index) }
+        history = next
+        store.saveHistory(next)
     }
 
     fun cancelTrip() {

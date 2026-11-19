@@ -5,6 +5,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 object Planner {
@@ -50,7 +51,7 @@ object Planner {
             stats.count(seg) > 0 -> Source.ESTIMATE
             else -> Source.DEFAULT
         }
-        val note = if (stats.count(seg) > 0) "${stats.count(seg)} ölçüm" else "varsayılan süre"
+        val note = if (stats.count(seg) > 0) "${stats.count(seg)} ölçüm" else ""
         return Leg(title, start, end, 0.0, src, note) to end
     }
 
@@ -69,7 +70,7 @@ object Planner {
         // 2. Ankaray
         val (trainKurtulus, trainIsLive, rolled) = pickAnkaray(atKurtulus, now, live)
         if (rolled) warnings += "Gece Ankaray seferi yok, ertesi sabahki ilk sefer kullanıldı"
-        val atKizilay = trainKurtulus.plusMinutes(KURTULUS_TO_KIZILAY)
+        val atKizilay = trainKurtulus.plusSeconds((stats.estimate(Segment.ANKARAY_RIDE) * 60).roundToLong())
         legs += Leg(
             "Ankaray (Kurtuluş → Kızılay)", atKurtulus, atKizilay,
             minutesBetween(atKurtulus, trainKurtulus),
@@ -84,10 +85,10 @@ object Planner {
         // 4. Metro
         val (metroBoard, headway, closed) = metroWait(atM2)
         if (closed) warnings += "Metro kapalı, ilk sefer 06:00'da"
-        val atBeytepe = metroBoard.plusMinutes(KIZILAY_TO_BEYTEPE)
+        val atBeytepe = metroBoard.plusSeconds((stats.estimate(Segment.METRO_RIDE) * 60).roundToLong())
         legs += Leg(
             "Metro (Kızılay → Beytepe)", atM2, atBeytepe, minutesBetween(atM2, metroBoard), Source.ESTIMATE,
-            if (closed) "ilk sefer 06:00" else "~${headway.toString().removeSuffix(".0")} dk aralıkla, ortalama bekleme"
+            if (closed) "ilk sefer 06:00" else "her ~${headway.roundToInt()} dk'da bir tren"
         )
 
         // 5. Exit walk to the 130 stop

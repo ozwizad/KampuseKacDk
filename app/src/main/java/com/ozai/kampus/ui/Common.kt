@@ -50,6 +50,24 @@ fun LocalDateTime.hhmmss(): String = this.format(HhMmSs)
 fun epochToHhmmss(ms: Long): String =
     Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalTime().format(HhMmSs)
 
+private val DayHhMm: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM HH:mm")
+
+fun epochToHhmm(ms: Long): String =
+    Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalTime().format(HhMm)
+
+fun epochToDateTime(ms: Long): String =
+    Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).toLocalDateTime().format(DayHhMm)
+
+/** +5 dk / -2 dk / tam zamanında */
+fun formatDiff(minutes: Double): String {
+    val r = Math.round(minutes).toInt()
+    return when {
+        r == 0 -> "tam zamanında"
+        r > 0 -> "+$r dk"
+        else -> "$r dk"
+    }
+}
+
 fun formatMin(v: Double): String = String.format(TrLocale, "%.1f", v)
 
 /** 75_000 -> "01:15", 3_725_000 -> "1:02:05". */

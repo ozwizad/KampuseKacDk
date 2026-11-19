@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -106,6 +107,71 @@ fun StatsScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.size(6.dp))
                         Text("Ölçüm ekle")
+                    }
+                }
+            }
+        }
+
+        if (vm.history.isNotEmpty()) {
+            item(key = "history-title") {
+                Text(
+                    "Geçmiş yolculuklar",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            itemsIndexed(vm.history, key = { _, r -> "trip_${r.startMs}" }) { i, rec ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(start = 14.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            val total = rec.totalMin
+                            Text(
+                                epochToDateTime(rec.startMs) +
+                                    (if (total != null) " · toplam ${formatMin(total)} dk" else ""),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            val actual = rec.actualArriveMs
+                            val pred = rec.predictedArriveMs
+                            val diff = rec.diffMin
+                            if (actual != null && pred != null && diff != null) {
+                                Text(
+                                    "Tahmin ${epochToHhmm(pred)} · gerçek ${epochToHhmm(actual)} (${formatDiff(diff)})",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            } else if (actual == null) {
+                                Text(
+                                    "Kampüs adımı kaydedilmedi",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            val waits = rec.waits()
+                            if (waits.isNotEmpty()) {
+                                Text(
+                                    waits.joinToString(" · ") { (label, v) -> "$label ${formatMin(v)} dk" },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        IconButton(onClick = { vm.deleteTrip(i) }) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Sil",
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }

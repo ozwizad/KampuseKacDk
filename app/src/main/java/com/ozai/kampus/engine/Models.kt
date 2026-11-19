@@ -19,7 +19,9 @@ enum class DayType {
 
 enum class Segment(val title: String, val defaultMin: Double) {
     WALK_HOME_KURTULUS("Ev → Kurtuluş peronu", 10.0),
+    ANKARAY_RIDE("Ankaray yolculuğu (Kurtuluş → Kızılay)", 3.0),
     TRANSFER_KIZILAY("Kızılay aktarma yürüyüşü", 4.0),
+    METRO_RIDE("Metro yolculuğu (Kızılay → Beytepe)", 20.0),
     EXIT_BEYTEPE_TO_STOP("Beytepe çıkış → 130 durağı", 4.0),
     RIDE_130("130 ile kampüse", 10.0)
 }

@@ -137,6 +137,42 @@ fun main() {
         check("plausible live bus still used", Planner.plan(t, none, nearStop).legs.last().source == Source.LIVE)
     }
 
+    // learned ride times flow into the plan
+    run {
+        val t = java.time.LocalDateTime.of(2026, 11, 19, 14, 31, 0)
+        val base = Planner.plan(t, none, null)
+        val learned = Stats(Segment.values().associateWith { seg ->
+            when (seg) {
+                Segment.ANKARAY_RIDE -> listOf(5.0, 5.0, 5.0)
+                Segment.METRO_RIDE -> listOf(25.0, 25.0, 25.0)
+                else -> emptyList()
+            }
+        })
+        val p = Planner.plan(t, learned, null)
+        check("learned Ankaray+metro ride add 7 min", p.totalMin - base.totalMin in 6..8, "diff=${p.totalMin - base.totalMin}")
+    }
+
+    // trip recorder samples (9 checkpoints) and record helpers
+    run {
+        val st = 1_000_000_000_000L
+        fun mins(m: Double) = st + (m * 60000).toLong()
+        val marks = listOf<Long?>(mins(8.0), mins(10.0), mins(13.0), mins(17.0), mins(19.0), mins(40.0), mins(44.0), mins(47.0), mins(58.0))
+        val trip = com.ozai.kampus.data.TripState(st, marks, mins(55.0))
+        val smp = trip.samples().associate { it.first to it.second }
+        check("trip walk 8", Math.abs((smp[Segment.WALK_HOME_KURTULUS] ?: -1.0) - 8.0) < 0.01)
+        check("trip ankaray ride 3", Math.abs((smp[Segment.ANKARAY_RIDE] ?: -1.0) - 3.0) < 0.01)
+        check("trip transfer 4", Math.abs((smp[Segment.TRANSFER_KIZILAY] ?: -1.0) - 4.0) < 0.01)
+        check("trip metro ride 21", Math.abs((smp[Segment.METRO_RIDE] ?: -1.0) - 21.0) < 0.01)
+        check("trip exit 4", Math.abs((smp[Segment.EXIT_BEYTEPE_TO_STOP] ?: -1.0) - 4.0) < 0.01)
+        check("trip 130 ride 11", Math.abs((smp[Segment.RIDE_130] ?: -1.0) - 11.0) < 0.01)
+        val rec = trip.toRecord()
+        check("record total 58", Math.abs((rec.totalMin ?: 0.0) - 58.0) < 0.01)
+        check("record diff +3", Math.abs((rec.diffMin ?: 0.0) - 3.0) < 0.01)
+        check("record waits 3", rec.waits().size == 3 && Math.abs(rec.waits()[1].second - 2.0) < 0.01)
+        val skipped = com.ozai.kampus.data.TripState(st, listOf(mins(8.0), null, mins(13.0)), null).samples()
+        check("skipped steps yield no sample", skipped.none { it.first == Segment.ANKARAY_RIDE })
+    }
+
     println(if (fails == 0) "ALL TESTS PASSED" else "$fails FAILURES")
     if (fails > 0) System.exit(1)
 }

@@ -52,6 +52,7 @@ import com.ozai.kampus.engine.Leg
 import com.ozai.kampus.engine.Plan
 import com.ozai.kampus.engine.Planner
 import com.ozai.kampus.engine.Segment
+import com.ozai.kampus.engine.Source
 import java.time.Duration
 import java.time.LocalDateTime
 import kotlin.math.roundToInt
@@ -268,8 +269,10 @@ private fun ArrivalCard(plan: Plan, notes: List<String>, modifier: Modifier = Mo
             val leaveBy = plan.leaveBy
             if (leaveBy != null) {
                 Spacer(Modifier.size(10.dp))
+                val minsLeft = Duration.between(LocalDateTime.now(), leaveBy).toMinutes()
+                val countdown = if (minsLeft >= 1) "$minsLeft dk sonra" else "şimdi"
                 Text(
-                    "En geç çıkış: ${leaveBy.hhmmFloor()}",
+                    "En geç çıkış: ${leaveBy.hhmmFloor()} · $countdown",
                     style = MaterialTheme.typography.titleMedium.merge(TabularNums),
                     fontWeight = FontWeight.SemiBold
                 )
@@ -372,7 +375,8 @@ private fun TimelineRow(leg: Leg, first: Boolean, last: Boolean) {
                     "${leg.start.hhmm()} → ${leg.end.hhmm()} · $mins dk",
                     style = MaterialTheme.typography.bodyMedium.merge(TabularNums)
                 )
-                SourceChip(leg.source)
+                // The timetable is the norm, so it gets no chip; only live/guessed/learned values do.
+                if (leg.source != Source.TIMETABLE) SourceChip(leg.source)
             }
             val detail = listOfNotNull(
                 if (leg.waitMin >= 0.5) "Bekleme ~${leg.waitMin.roundToInt()} dk" else null,
