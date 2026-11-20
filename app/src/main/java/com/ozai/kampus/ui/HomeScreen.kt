@@ -44,6 +44,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,11 +62,13 @@ import kotlin.math.roundToInt
 private class HomeData(val plan: Plan, val options: List<Plan>)
 
 @Composable
-fun HomeScreen(
-    vm: MainViewModel,
-    modifier: Modifier = Modifier,
-    onOpenTrip: () -> Unit = {}
-) {
+fun HomeScreen(vm: MainViewModel, modifier: Modifier = Modifier) {
+    if (vm.trip != null) ActiveTrip(vm, modifier) else IdleHome(vm, modifier)
+}
+
+@Composable
+private fun IdleHome(vm: MainViewModel, modifier: Modifier = Modifier) {
+    val haptic = LocalHapticFeedback.current
     val minute = vm.minuteKey
     val stats = vm.stats
     val live = vm.live
@@ -79,10 +83,12 @@ fun HomeScreen(
         }
     }
     val walkCount = stats.count(Segment.WALK_HOME_KURTULUS)
-    val trip = vm.trip
 
+    Column(modifier.fillMaxSize()) {
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxWidth(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -96,10 +102,9 @@ fun HomeScreen(
             )
         }
 
-        if (trip != null) {
-            item(key = "trip") {
-                TripPill(vm.nowMs - trip.startMs, onOpenTrip, softItem())
-            }
+        val msg = vm.message
+        if (msg != null) {
+            item(key = "message") { MessageCard(msg, { vm.dismissMessage() }, softItem()) }
         }
 
         if (data == null) {
@@ -153,45 +158,19 @@ fun HomeScreen(
             }
         }
     }
-}
-
-@Composable
-private fun TripPill(elapsedMs: Long, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val source = remember { MutableInteractionSource() }
-    Card(
-        onClick = onClick,
-        interactionSource = source,
-        modifier = modifier
-            .fillMaxWidth()
-            .pressScale(source),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-        )
-    ) {
-        Row(
-            Modifier
+    ActionBar {
+        AppButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                vm.startTrip()
+            },
+            modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .height(60.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier
-                        .size(8.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("Kayıt sürüyor", fontWeight = FontWeight.Medium)
-            }
-            Text(
-                formatElapsed(elapsedMs),
-                style = MaterialTheme.typography.bodyMedium.merge(TabularNums),
-                fontWeight = FontWeight.Bold
-            )
+            Text("Yolculuğu başlat", fontSize = 18.sp)
         }
+    }
     }
 }
 
@@ -212,7 +191,7 @@ private fun CalibrationBanner(count: Int, modifier: Modifier = Modifier) {
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                "Yolculuk sekmesinde kaydı başlat; 3 ölçümden sonra süre öğrenilir.",
+                "Evden çıkarken Yolculuğu başlat'a bas; 3 ölçümden sonra süre öğrenilir.",
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -394,7 +373,7 @@ private fun TimelineRow(leg: Leg, first: Boolean, last: Boolean) {
 }
 
 @Composable
-private fun RefreshRow(vm: MainViewModel, modifier: Modifier = Modifier) {
+internal fun RefreshRow(vm: MainViewModel, modifier: Modifier = Modifier) {
     Row(
         modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,

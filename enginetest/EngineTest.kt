@@ -173,6 +173,44 @@ fun main() {
         check("skipped steps yield no sample", skipped.none { it.first == Segment.ANKARAY_RIDE })
     }
 
+
+    // trip-anchored plan
+    run {
+        val start = dt(WED, "14:00")
+        val a = Planner.planTrip(start, emptyList(), start, none, null)
+        check("planTrip 9 steps", a.steps.size == 9 && a.nextIndex == 0)
+        check("planTrip steps ordered", a.steps.zipWithNext().all { (x, y) -> y.time >= x.time })
+        val train = a.steps[1].expected
+        // time passes while walking: planned train must not change
+        val b = Planner.planTrip(start, emptyList(), start.plusMinutes(5), none, null)
+        check("anchored: same train after 5 min", b.steps[1].expected == train && b.arriveCampus == a.arriveCampus)
+        val c = Planner.planTrip(start, emptyList(), start.plusMinutes(9), none, null)
+        check("anchored: same arrival after 9 min", c.arriveCampus == a.arriveCampus)
+        // arrived at platform exactly on time, still same train
+        val m0 = start.plusMinutes(10)
+        val d = Planner.planTrip(start, listOf(m0), m0, none, null)
+        check("platform on time keeps train", d.steps[1].expected == train && d.nextIndex == 1)
+        // missed the train: waiting at platform after it left -> next train, later arrival
+        val late = Planner.planTrip(start, listOf(train.plusMinutes(3)), train.plusMinutes(3), none, null)
+        check("missed train picks next", late.steps[1].expected > train && late.arriveCampus > a.arriveCampus)
+        // real marks shift the ETA
+        val m1 = train; val m2 = train.plusMinutes(6)
+        val e = Planner.planTrip(start, listOf(m0, m1, m2), m2, none, null)
+        check("actual ride 6 vs est 3 shifts arrival +3", Math.abs(java.time.Duration.between(a.arriveCampus, e.arriveCampus).toMinutes() - 3L) <= 1L,
+            "${a.arriveCampus} -> ${e.arriveCampus}")
+        check("actual marks kept", e.steps[2].actual == m2 && e.steps[0].actual == m0)
+        // skipped mark uses prediction, chain continues
+        val f = Planner.planTrip(start, listOf(m0, null), m0.plusMinutes(1), none, null)
+        check("skipped step flagged", f.steps[1].skipped && f.steps[1].actual == null && f.nextIndex == 2)
+        // finished trip
+        val allMarks = a.steps.map { it.expected }
+        val g = Planner.planTrip(start, allMarks, allMarks.last(), none, null)
+        check("finished trip", g.finished && g.arriveCampus == allMarks.last())
+        // pending step never in the past
+        val h = Planner.planTrip(start, listOf(m0, m1), train.plusMinutes(20), none, null)
+        check("pending step >= now", h.steps[2].expected >= train.plusMinutes(20))
+    }
+
     println(if (fails == 0) "ALL TESTS PASSED" else "$fails FAILURES")
     if (fails > 0) System.exit(1)
 }

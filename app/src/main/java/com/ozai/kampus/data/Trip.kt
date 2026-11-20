@@ -15,6 +15,18 @@ object TripSteps {
         "130'a bindim",
         "Kampüsteyim"
     )
+    /** What to do next, phrased as an instruction for the focus card. */
+    val targets: List<String> = listOf(
+        "Kurtuluş peronuna var",
+        "Ankaray'a bin",
+        "Kızılay'da in",
+        "M2 peronuna var",
+        "Metroya bin",
+        "Beytepe'de in",
+        "130 durağına var",
+        "130'a bin",
+        "Kampüse var"
+    )
     const val LAST = 8
 }
 

@@ -64,3 +64,25 @@ data class Plan(
     val leaveBy: LocalDateTime?,
     val warnings: List<String>
 )
+
+/** One checkpoint of a running trip. [time] is the actual time if recorded, else the expectation. */
+data class TripStep(
+    val index: Int,
+    val expected: LocalDateTime,
+    val actual: LocalDateTime?,
+    val skipped: Boolean,
+    val live: Boolean,
+    val info: String
+) {
+    val time: LocalDateTime get() = actual ?: expected
+}
+
+/** Plan anchored to the moment the trip started; checkpoints chain from real marks. */
+data class TripPlan(
+    val steps: List<TripStep>,
+    val nextIndex: Int,
+    val warnings: List<String>
+) {
+    val arriveCampus: LocalDateTime get() = steps.last().time
+    val finished: Boolean get() = nextIndex >= steps.size
+}

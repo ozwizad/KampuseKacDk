@@ -24,6 +24,73 @@ object Planner {
     fun options(now: LocalDateTime, stats: Stats, live: LiveInfo?, count: Int = 4): List<Plan> =
         (0 until count).map { planAt(now.plusMinutes(5L * it), now, stats, live) }
 
+
+    /**
+     * Trip-anchored plan: 9 checkpoints chained from [start]. Recorded [marks] (index < marks.size,
+     * null = skipped) replace predictions; only the pending checkpoint is pushed forward to [now],
+     * so the planned train does not drift while time passes.
+     */
+    fun planTrip(start: LocalDateTime, marks: List<LocalDateTime?>, now: LocalDateTime, stats: Stats, live: LiveInfo?): TripPlan {
+        val warnings = mutableListOf<String>()
+        val pending = marks.size
+        val steps = ArrayList<TripStep>()
+        var chain = start
+        fun dur(seg: Segment) = Duration.ofSeconds((stats.estimate(seg) * 60).roundToLong())
+
+        for (i in 0..8) {
+            val actual = if (i < marks.size) marks[i] else null
+            val skipped = i < marks.size && actual == null
+            val isPending = i == pending
+            val base = if (isPending) maxOf(chain, now.minusSeconds(60)) else chain
+            var isLive = false
+            var info = ""
+            var expected: LocalDateTime
+            when (i) {
+                1 -> {
+                    val (train, l, rolled) = pickAnkaray(base, now, live)
+                    if (rolled && !warnings.contains(NO_NIGHT_ANKARAY)) warnings += NO_NIGHT_ANKARAY
+                    expected = train; isLive = l
+                    info = "${fmt(train)} treni" + if (l) " (canlı)" else ""
+                }
+                4 -> {
+                    val (board, hw, closed) = metroWait(chain)
+                    if (closed && !warnings.contains(METRO_CLOSED)) warnings += METRO_CLOSED
+                    expected = if (isPending && board < now) now else board
+                    info = if (closed) "ilk sefer 06:00" else "her ~${hw.roundToInt()} dk'da bir"
+                }
+                7 -> {
+                    val lb = liveBus(base, now, live)
+                    if (lb != null) {
+                        expected = lb.first; isLive = true
+                        info = "${fmt(lb.first)} seferi (canlı)"
+                    } else {
+                        val tt = timetableBus(base)
+                        if (tt != null) { expected = tt; info = "${fmt(tt)} seferi (tarife)" }
+                        else { expected = base.plusMinutes(5); info = "tahmini bekleme" }
+                    }
+                }
+                else -> {
+                    val seg = when (i) {
+                        0 -> Segment.WALK_HOME_KURTULUS
+                        2 -> Segment.ANKARAY_RIDE
+                        3 -> Segment.TRANSFER_KIZILAY
+                        5 -> Segment.METRO_RIDE
+                        6 -> Segment.EXIT_BEYTEPE_TO_STOP
+                        else -> Segment.RIDE_130
+                    }
+                    expected = chain.plus(dur(seg))
+                    if (isPending && expected < now) expected = now
+                }
+            }
+            steps += TripStep(i, expected, actual, skipped, isLive, info)
+            chain = actual ?: expected
+        }
+        return TripPlan(steps, pending.coerceAtMost(steps.size), warnings)
+    }
+
+    private const val NO_NIGHT_ANKARAY = "Gece Ankaray seferi yok, ertesi sabahki ilk sefer kullanıldı"
+    private const val METRO_CLOSED = "Metro kapalı, ilk sefer 06:00'da"
+
     // ---- helpers -------------------------------------------------------------------------
 
     /** Times 00:00-02:59 belong to the previous service day. */

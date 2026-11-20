@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -19,8 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 
 private enum class Tab(val label: String, val icon: ImageVector) {
-    HOME("Ana Sayfa", Icons.Default.Home),
-    TRIP("Yolculuk", Icons.Default.PlayArrow),
+    HOME("Yolculuk", Icons.Default.Home),
     STATS("İstatistik", Icons.Default.Info)
 }
 
@@ -45,8 +43,7 @@ fun KampusApp(vm: MainViewModel) {
         ) { padding ->
             val mod = Modifier.padding(padding)
             when (tabs[tabIndex]) {
-                Tab.HOME -> HomeScreen(vm, mod, onOpenTrip = { tabIndex = 1 })
-                Tab.TRIP -> TripScreen(vm, mod)
+                Tab.HOME -> HomeScreen(vm, mod)
                 Tab.STATS -> StatsScreen(vm, mod)
             }
         }

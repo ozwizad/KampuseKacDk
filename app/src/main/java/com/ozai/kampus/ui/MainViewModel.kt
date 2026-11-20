@@ -10,6 +10,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.ozai.kampus.data.EgoApi
 import com.ozai.kampus.data.StatsStore
+import com.ozai.kampus.data.TripNotifier
 import com.ozai.kampus.data.TripRecord
 import com.ozai.kampus.data.TripState
 import com.ozai.kampus.engine.LiveInfo
@@ -152,6 +153,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun updateTrip(t: TripState?) {
         trip = t
         store.saveTrip(t)
+        if (t == null) TripNotifier.cancel(getApplication<Application>())
     }
 
     // ---- stats ----
